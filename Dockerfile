@@ -1,13 +1,13 @@
-FROM mcr.microsoft.com/dotnet/sdk:5.0-focal AS build
-WORKDIR /src
-COPY ["CloudWebApiDemo.csproj", "./"]
-RUN dotnet restore "./CloudWebApiDemo.csproj"
-COPY . .
-WORKDIR "/src/."
-RUN dotnet build "CloudWebApiDemo.csproj" -c Release -o /app/build
-FROM build AS publish
-RUN dotnet publish "CloudWebApiDemo.csproj" -c Release -o /app/publish
-FROM base AS final
+FROM mcr.microsoft.com/dotnet/core/sdk:2.2 AS build-env
 WORKDIR /app
-COPY --from=publish /app/publish .
+# Copy csproj and restore as distinct layers
+COPY *.csproj ./
+RUN dotnet restore
+# Copy everything else and build
+COPY . ./
+RUN dotnet publish -c Release -o out
+# Build runtime image
+FROM mcr.microsoft.com/dotnet/core/aspnet:2.2
+WORKDIR /app
+COPY --from=build-env /app/out .
 ENTRYPOINT ["dotnet", "CloudWebApiDemo.dll"]
